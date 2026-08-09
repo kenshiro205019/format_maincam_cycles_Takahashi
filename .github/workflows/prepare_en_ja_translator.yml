@@ -16,13 +16,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - name: Build portable runtime and download models
+      - name: Build slim portable runtime and download models
         shell: bash
         run: |
           set -euxo pipefail
           python -m pip install --upgrade pip
           mkdir -p bundle/python bundle/models
-          python -m pip install --target bundle/python argostranslate
+          python -m pip install --target bundle/python --no-deps argostranslate ctranslate2 sacremoses minisbd
           curl -fL --retry 5 --retry-delay 3 'https://data.argosopentech.com/argospm/v1/translate-en_ja-1_1.argosmodel' -o bundle/models/translate-en_ja-1_1.argosmodel
           curl -fL --retry 5 --retry-delay 3 'https://data.argosopentech.com/argospm/v1/translate-ko_en-1_1.argosmodel' -o bundle/models/translate-ko_en-1_1.argosmodel
           curl -fL --retry 5 --retry-delay 3 'https://data.argosopentech.com/argospm/v1/translate-zh_en-1_9.argosmodel' -o bundle/models/translate-zh_en-1_9.argosmodel
@@ -39,10 +39,11 @@ jobs:
               print(src, out)
               assert out
           PY
+          du -sh bundle
       - name: Upload portable translator
         uses: actions/upload-artifact@v4
         with:
-          name: multilingual-to-ja-argos-portable
+          name: multilingual-to-ja-argos-portable-slim
           path: bundle
           compression-level: 0
           retention-days: 2
