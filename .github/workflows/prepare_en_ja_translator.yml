@@ -4,6 +4,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,9 +35,28 @@ jobs:
           print(out)
           assert out
           PY
-      - uses: actions/upload-artifact@v4
+      - name: Upload portable translator
+        uses: actions/upload-artifact@v4
         with:
           name: en-ja-argos-portable
           path: bundle
           compression-level: 0
           retention-days: 2
+      - name: Publish run ID to metadata branch
+        shell: bash
+        run: |
+          set -euxo pipefail
+          tmp="$(mktemp -d)"
+          cd "$tmp"
+          git init
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          printf '%s\n' "$GITHUB_RUN_ID" > translator_run_id.txt
+          printf '%s\n' "$GITHUB_SHA" > translator_commit_sha.txt
+          git add .
+          git commit -m 'Record translator artifact run'
+          git branch -M translator-artifact-metadata
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin translator-artifact-metadata
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
