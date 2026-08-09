@@ -1,0 +1,40 @@
+name: Prepare offline EN-JA translator
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Build portable runtime and download model
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python -m pip install --upgrade pip
+          mkdir -p bundle/python
+          python -m pip install --target bundle/python argostranslate
+          curl -fL --retry 5 --retry-delay 3 'https://data.argosopentech.com/argospm/v1/translate-en_ja-1_1.argosmodel' -o bundle/translate-en_ja-1_1.argosmodel
+          python - <<'PY'
+          import os, sys, tempfile
+          root = os.path.abspath('bundle')
+          sys.path.insert(0, os.path.join(root, 'python'))
+          os.environ['XDG_DATA_HOME'] = tempfile.mkdtemp(prefix='argos-test-')
+          import argostranslate.package, argostranslate.translate
+          argostranslate.package.install_from_path(os.path.join(root, 'translate-en_ja-1_1.argosmodel'))
+          out = argostranslate.translate.translate('A rack and pinion converts linear motion into rotary motion.', 'en', 'ja')
+          print(out)
+          assert out
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: en-ja-argos-portable
+          path: bundle
+          compression-level: 0
+          retention-days: 2
