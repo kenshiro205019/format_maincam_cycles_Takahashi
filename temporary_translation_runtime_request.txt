@@ -1,0 +1,2 @@
+Temporary one-time build request for an offline English-to-Japanese translator used in PDF translation work.
+Trigger revision: 4
